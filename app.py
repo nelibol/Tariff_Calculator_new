@@ -250,7 +250,7 @@ def create_gauge_chart(value: float, title: str, max_value: float = 10.0):
         gauge={
             'axis': {'range': [None, max_value], 'tickwidth': 1, 'tickcolor': "darkgray"},
             'bar': {'color': color},
-            'bgcolor': "darkgrey",
+            'bgcolor': "black",
             'borderwidth': 2,
             'bordercolor': "gray",
             'steps': [
@@ -269,7 +269,7 @@ def create_gauge_chart(value: float, title: str, max_value: float = 10.0):
     fig.update_layout(
         height=250,
         margin=dict(l=20, r=20, t=60, b=20),
-        paper_bgcolor="darkgrey",
+        paper_bgcolor="black",
         font={'color': "white", 'family': "Arial"}
     )
 
@@ -289,7 +289,7 @@ def create_breakdown_chart(details: list):
             color=df['weighted_score'],
             colorscale='RdYlGn',
             showscale=False,
-            line=dict(color='darkgrey', width=1)
+            line=dict(color='black', width=1)
         ),
         text=df['weighted_score'].round(2),
         textposition='auto',
@@ -307,7 +307,7 @@ def create_breakdown_chart(details: list):
         yaxis_title="",
         height=400,
         margin=dict(l=150, r=20, t=60, b=40),
-        paper_bgcolor="darkgrey",
+        paper_bgcolor="black",
         plot_bgcolor="rgba(240,240,240,0.3)"
     )
 
@@ -349,7 +349,7 @@ def create_points_chart(details: list):
         margin=dict(l=60, r=60, t=60, b=100),
         legend=dict(x=0.01, y=0.99),
         hovermode='x unified',
-        paper_bgcolor="darkgrey",
+        paper_bgcolor="black",
         plot_bgcolor="rgba(240,240,240,0.3)"
     )
 
