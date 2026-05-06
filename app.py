@@ -270,7 +270,7 @@ def create_gauge_chart(value: float, title: str, max_value: float = 10.0):
         height=250,
         margin=dict(l=20, r=20, t=60, b=20),
         paper_bgcolor="black",
-        font={'color': "darkblue", 'family': "Arial"}
+        font={'color': "white", 'family': "Arial"}
     )
 
     return fig
@@ -500,7 +500,7 @@ def display_history():
             y=df_history['Overall Score'],
             mode='lines+markers',
             name='Overall Score',
-            line=dict(color='blue', width=2),
+            line=dict(color='white', width=2),
             marker=dict(size=8)
         ))
         fig.update_layout(
