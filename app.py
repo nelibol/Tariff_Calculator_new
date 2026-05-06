@@ -361,8 +361,8 @@ def initialize_history():
         st.session_state['score_history'] = []
 
 def add_to_history(inputs: Dict, price_rank: int, total_tariffs: int, 
-                   tarifnote: float, preisnote: float, overall_score: float):
-    """Add a score calculation to history"""
+                   tarifnote: float, preisnote: float, overall_score: float, tarif_result: Dict):
+    """Add a score calculation to history with full config"""
     history_entry = {
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'inputs': inputs.copy(),
@@ -370,7 +370,8 @@ def add_to_history(inputs: Dict, price_rank: int, total_tariffs: int,
         'total_tariffs': total_tariffs,
         'tarifnote': tarifnote,
         'preisnote': preisnote,
-        'overall_score': overall_score
+        'overall_score': overall_score,
+        'config_details': tarif_result['details']  # Store full config details
     }
     st.session_state['score_history'].append(history_entry)
 
@@ -380,8 +381,9 @@ def get_history_dataframe():
         return None
     
     history_data = []
-    for entry in st.session_state['score_history']:
+    for idx, entry in enumerate(st.session_state['score_history']):
         row = {
+            '#': idx + 1,
             'Timestamp': entry['timestamp'],
             'Tarifnote': entry['tarifnote'],
             'Preisnote': entry['preisnote'],
@@ -392,6 +394,52 @@ def get_history_dataframe():
         history_data.append(row)
     
     return pd.DataFrame(history_data)
+
+def display_config_details(entry: Dict, entry_index: int):
+    """Display detailed config for a specific history entry"""
+    st.subheader(f"📋 Configuration Details - Calculation #{entry_index + 1}")
+    st.markdown(f"**Timestamp:** {entry['timestamp']}")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Tarifnote", entry['tarifnote'])
+    with col2:
+        st.metric("Preisnote", entry['preisnote'])
+    with col3:
+        st.metric("Overall Score", entry['overall_score'])
+    with col4:
+        st.metric("Price Rank", f"{entry['price_rank']}/{entry['total_tariffs']}")
+    
+    st.markdown("---")
+    st.markdown("### Input Values")
+    
+    # Display input values
+    input_cols = st.columns(2)
+    col_idx = 0
+    for criterion_name, value in entry['inputs'].items():
+        with input_cols[col_idx % 2]:
+            st.write(f"**{criterion_name}:** {value}")
+        col_idx += 1
+    
+    st.markdown("---")
+    st.markdown("### Scoring Details")
+    
+    # Create detailed table
+    df_config = pd.DataFrame(entry['config_details'])
+    df_config_display = df_config[['display_name', 'value', 'raw_points', 'weight', 'weighted_score', 'max_weighted_score']].copy()
+    df_config_display.columns = ['Criterion', 'Value', 'Raw Points', 'Weight (%)', 'Weighted Score', 'Max Score']
+    df_config_display['Efficiency %'] = ((df_config_display['Weighted Score'] / df_config_display['Max Score']) * 100).round(1)
+    
+    st.dataframe(
+        df_config_display.style.format({
+            'Raw Points': '{:.0f}',
+            'Weight (%)': '{:.0f}',
+            'Weighted Score': '{:.2f}',
+            'Max Score': '{:.2f}',
+            'Efficiency %': '{:.1f}%'
+        }).background_gradient(subset=['Efficiency %'], cmap='RdYlGn', vmin=0, vmax=100),
+        use_container_width=True
+    )
 
 def display_history():
     """Display the score history"""
@@ -428,13 +476,27 @@ def display_history():
         min_overall = df_history['Overall Score'].min()
         st.metric("Worst Overall Score", f"{min_overall:.2f}")
     
+    st.markdown("---")
+    st.markdown("### View Detailed Configuration")
+    
+    # Create selectbox to view specific calculation details
+    calculation_options = [f"Calculation #{i+1} ({entry['timestamp']})" 
+                          for i, entry in enumerate(st.session_state['score_history'])]
+    selected_calc = st.selectbox("Select a calculation to view details:", calculation_options)
+    
+    if selected_calc:
+        selected_idx = int(selected_calc.split('#')[1].split()[0]) - 1
+        display_config_details(st.session_state['score_history'][selected_idx], selected_idx)
+    
+    st.markdown("---")
+    
     # Show history visualization
     col1, col2 = st.columns(2)
     
     with col1:
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=df_history.index,
+            x=df_history['#'],
             y=df_history['Overall Score'],
             mode='lines+markers',
             name='Overall Score',
@@ -453,7 +515,7 @@ def display_history():
     with col2:
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=df_history.index,
+            x=df_history['#'],
             y=df_history['Tarifnote'],
             mode='lines+markers',
             name='Tarifnote',
@@ -461,7 +523,7 @@ def display_history():
             marker=dict(size=8)
         ))
         fig.add_trace(go.Scatter(
-            x=df_history.index,
+            x=df_history['#'],
             y=df_history['Preisnote'],
             mode='lines+markers',
             name='Preisnote',
@@ -476,6 +538,9 @@ def display_history():
             hovermode='x unified'
         )
         st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    st.markdown("### Export History")
     
     # Export history
     col1, col2 = st.columns(2)
@@ -587,8 +652,8 @@ def main():
         preisnote = calculator.calculate_preisnote(price_rank, total_tariffs)
         overall_score = calculator.calculate_overall_score(tarif_result['tarifnote'], preisnote)
 
-        # Add to history
-        add_to_history(inputs, price_rank, total_tariffs, tarif_result['tarifnote'], preisnote, overall_score)
+        # Add to history (passing tarif_result for full config details)
+        add_to_history(inputs, price_rank, total_tariffs, tarif_result['tarifnote'], preisnote, overall_score, tarif_result)
 
         # Store in session state
         st.session_state['calculated'] = True
@@ -803,7 +868,7 @@ def main():
     st.markdown(
         """
         <div style='text-align: center; color: gray;'>
-            <p>Tariff Scoring Calculator Dashboard v2.0</p>
+            <p>Tariff Scoring Calculator Dashboard v2.1</p>
             <p>Formula: Overall Score = (Tarifnote × 40% + Preisnote × 60%)</p>
         </div>
         """,
