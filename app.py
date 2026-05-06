@@ -250,7 +250,7 @@ def create_gauge_chart(value: float, title: str, max_value: float = 10.0):
         gauge={
             'axis': {'range': [None, max_value], 'tickwidth': 1, 'tickcolor': "darkgray"},
             'bar': {'color': color},
-            'bgcolor': "white",
+            'bgcolor': "black",
             'borderwidth': 2,
             'bordercolor': "gray",
             'steps': [
